@@ -41,6 +41,7 @@ class BaseAdapter(object):
                     for d in existing}
         usd_exchange_rates = dict(self.get_exchangerates('USD'))
 
+        currencies_on_db = list(Currency.objects.all())
         updates = []
         inserts = []
         for source in currencies_on_db:

@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import logging
-from openexchangerates import OpenExchangeRatesClient
+from pyoxr import OXRClient
 
 from django.conf import settings
 
@@ -19,11 +19,10 @@ class OpenExchangeRatesAdapter(BaseAdapter):
     API_KEY_SETTINGS_KEY = 'OPENEXCHANGERATES_API_KEY'
 
     def __init__(self):
-        self.client = OpenExchangeRatesClient(
-            getattr(settings, self.API_KEY_SETTINGS_KEY))
+        self.client = OXRClient(app_id=getattr(settings, self.API_KEY_SETTINGS_KEY))
 
     def get_currencies(self):
-        return self.client.currencies().items()
+        return OXRClient.get_currencies(api=self.client).items()
 
     def get_exchangerates(self, base):
-        return self.client.latest(base)['rates'].items()
+        return OXRClient.get_latest(base, api=self.client)['rates'].items()

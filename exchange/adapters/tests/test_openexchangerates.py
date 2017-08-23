@@ -1,4 +1,7 @@
-from mock import patch
+try:
+    from unittest import patch
+except ImportError:
+    from mock import patch
 
 from django.test import TestCase
 
@@ -7,11 +10,11 @@ from exchange.adapters.openexchangerates import OpenExchangeRatesAdapter
 
 
 class OpenExchangeRatesAdapterTest(TestCase):
-    def test_update(self):
+    @patch('exchange.adapters.openexchangerates.OXRClient')
+    def test_update(self, client):
         currency_dict = {
             'AED': 'United Arab Emirates Dirham',
-            'AFN': 'Afghan Afghani',
-            'USD': 'USA'
+            'AFN': 'Afghan Afghani', 'USD': 'USA'
         }
 
         latest_dict = {
@@ -26,22 +29,22 @@ class OpenExchangeRatesAdapterTest(TestCase):
             }
         }
 
+        client.get_currencies.return_value = currency_dict
+        client.get_latest.return_value = latest_dict
+
         adapter = OpenExchangeRatesAdapter()
 
-        with patch.object(adapter, 'client') as client:
-            client.currencies.return_value = currency_dict
-            client.latest.return_value = latest_dict
-            adapter.update()
+        adapter.update()
 
-            self.assertEqual(Currency.objects.count(), len(currency_dict))
-            self.assertEqual(
-                list(Currency.objects.order_by('code').values_list('code', flat=True)),
-                sorted(currency_dict.keys())
+        self.assertEqual(Currency.objects.count(), len(currency_dict))
+        self.assertEqual(
+            list(Currency.objects.order_by('code').values_list('code', flat=True)),
+            sorted(currency_dict.keys())
+        )
+
+        for k, v in latest_dict['rates'].items():
+            rate = ExchangeRate.objects.get(
+                source__code='USD',
+                target__code=k,
             )
-
-            for k, v in latest_dict['rates'].items():
-                rate = ExchangeRate.objects.get(
-                    source__code='USD',
-                    target__code=k,
-                )
-                self.assertEqual('%.2f' % rate.rate, '%.2f' % v)
+            self.assertEqual('%.2f' % rate.rate, '%.2f' % v)

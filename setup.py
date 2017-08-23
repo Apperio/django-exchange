@@ -14,7 +14,7 @@ setup(
     packages=find_packages(
         exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
     install_requires=[
-        'openexchangerates'
+        'pyoxr'
     ],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
