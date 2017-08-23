@@ -1,5 +1,4 @@
 from collections import namedtuple
-from operator import itemgetter
 from datetime import timedelta
 
 from django.conf import settings
@@ -39,7 +38,7 @@ def convert_values(args_list):
 
     :return: map of converted values
     """
-    rate_map = get_rates(map(itemgetter(1, 2), args_list))
+    rate_map = get_rates((arg[1], arg[2]) for arg in args_list)
     value_map = {}
     for value, source, target in args_list:
         args = (value, source, target)
@@ -64,8 +63,8 @@ def get_rates(currencies):
                 targets.append(target)
     else:
         rate_map = {c: None for c in currencies}
-        sources = map(itemgetter(0), currencies)
-        targets = map(itemgetter(1), currencies)
+        sources = [source for source, _ in currencies]
+        targets = [target for _, target in currencies]
 
     rates = ExchangeRate.objects.filter(
         source__code__in=sources,
