@@ -1,7 +1,5 @@
-from django.core.cache import get_cache
+from django.core.cache import caches
 from django.conf import settings
-
-from exchange.models import ExchangeRate
 
 
 CACHE_ENABLED_KEY = 'EXCHANGE_CACHE_ENABLED'
@@ -20,7 +18,7 @@ CACHE_KEY_PREFIX = getattr(settings, CACHE_KEY_PREFIX_KEY,
 
 CACHE_TIMEOUT = 0  # Not configurable at all
 
-cache = get_cache(CACHE_DATABASE)
+cache = caches[CACHE_DATABASE]
 
 
 def _get_cache_key(source_currency, target_currency):
@@ -28,6 +26,8 @@ def _get_cache_key(source_currency, target_currency):
 
 
 def update_rates_cached():
+    from exchange.models import ExchangeRate
+
     rates = ExchangeRate.objects.all()
     cache_map = {_get_cache_key(rate.source.code, rate.target.code): rate.rate
                  for rate in rates}

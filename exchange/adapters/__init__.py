@@ -1,8 +1,6 @@
 import logging
 from decimal import Decimal
 
-from exchange.models import Currency, ExchangeRate
-
 from exchange.utils import update_many, insert_many
 
 logger = logging.getLogger(__name__)
@@ -19,12 +17,22 @@ class BaseAdapter(object):
         corresponding ``Currency`` and ``ExchangeRate`` models
 
         """
+        from exchange.models import Currency, ExchangeRate
+
         currencies = self.get_currencies()
+
+        # Currencies which exist on db (not exist on currencies coming from
+        # openexchangerates api) should be deleted from db.
+        currencies_on_db = list(Currency.objects.all())
+        for currency in currencies_on_db:
+            if (currency.code, currency.name) not in currencies:
+                currency.delete()
+
         for code, name in currencies:
             _, created = Currency.objects.get_or_create(
                 code=code, defaults={'name': name})
             if created:
-                logger.info('currency: %s created', code)
+                logger.debug('currency: %s created', code)
 
         existing = ExchangeRate.objects.values('source__code',
                                                'target__code',
@@ -35,9 +43,8 @@ class BaseAdapter(object):
 
         updates = []
         inserts = []
-        currencies = list(Currency.objects.all())
-        for source in currencies:
-            for target in currencies:
+        for source in currencies_on_db:
+            for target in currencies_on_db:
                 rate = self._get_rate_through_usd(source.code,
                                                   target.code,
                                                   usd_exchange_rates)
@@ -56,19 +63,19 @@ class BaseAdapter(object):
                     logger.debug('exchange rate created %s/%s=%s'
                                  % (source, target, rate))
 
-            logger.info('exchange rates updated for %s' % source.code)
-        logger.info("Updating %s rows" % len(updates))
+            logger.debug('exchange rates updated for %s' % source.code)
+        logger.debug("Updating %s rows" % len(updates))
         update_many(updates)
-        logger.info("Inserting %s rows" % len(inserts))
+        logger.debug("Inserting %s rows" % len(inserts))
         insert_many(inserts)
-        logger.info('saved rates to db')
+        logger.debug('saved rates to db')
 
     def _get_rate_through_usd(self, source, target, usd_rates):
         # from: https://openexchangerates.org/documentation#how-to-use
         # gbp_hkd = usd_hkd * (1 / usd_gbp)
         usd_source = usd_rates[source]
         usd_target = usd_rates[target]
-        rate = usd_target * (Decimal(1.0) / usd_source)
+        rate = Decimal(usd_target) * (Decimal(1.0) / Decimal(usd_source))
         rate = rate.quantize(Decimal('0.123456'))  # round to 6 decimal places
         return rate
 
