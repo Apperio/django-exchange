@@ -26,8 +26,8 @@ class Currency(models.Model):
 @python_2_unicode_compatible
 class ExchangeRate(models.Model):
     """Model to persist exchange rates between currencies"""
-    source = models.ForeignKey('exchange.Currency', related_name='rates')
-    target = models.ForeignKey('exchange.Currency')
+    source = models.ForeignKey('exchange.Currency', related_name='rates', on_delete=models.CASCADE)
+    target = models.ForeignKey('exchange.Currency', on_delete=models.CASCADE)
     rate = models.DecimalField(max_digits=17, decimal_places=8)
 
     objects = ExchangeRateManager()
